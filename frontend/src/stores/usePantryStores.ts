@@ -59,7 +59,7 @@ export const usePantryStore = create<PantryState>()(
       clearPantry: () => set({ pantry: [] }),
     }),
     {
-      name: 'sempai-pantry',
+      name: 'forkcast-pantry',
       merge: (persisted, current) => {
         const p = persisted as Partial<PantryState>;
         const items = (p.pantry ?? []).map((item) => ({
