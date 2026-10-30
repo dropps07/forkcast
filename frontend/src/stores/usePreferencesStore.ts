@@ -23,6 +23,7 @@ export interface Preferences {
     mealsPerDay: number,
     startDate: string,
     numDays: number,
+    leftovers: string,
     otherPreferences :  string,
     searchMode: 'web' | 'training',
 }
@@ -39,16 +40,17 @@ const defaults: Preferences = {
   },
   dietary: {
     maxSodium: 2300,
+    maxSugar: 50,
     allergens: [],
     isVegetarian: true,
     isVegan: false,
-    maxSugar: 50,
   },
   maxPrepTime: 30,
   maxCookTime: 60,
   mealsPerDay: 3,
   startDate: '',
   numDays: 7,
+  leftovers: '',
   otherPreferences: '',
   searchMode: 'web',
 };
@@ -123,7 +125,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       reset: () => set(defaults),
     }),
     {
-      name: 'sempai-preferences',
+      name: 'forkcast-preferences',
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<PreferencesState>;
         return {
@@ -145,7 +147,7 @@ export const CUISINES = [
 
 export const EQUIPMENT = [
   'Oven', 'Stovetop', 'Air Fryer', 'Slow Cooker',
-  'Instant Pot', 'Microwave', 'Grill', 'Blender',
+  'Instant Pot', 'Microwave', 'Pan', 'Blender',
 ];
 
 export const ALLERGENS = [
