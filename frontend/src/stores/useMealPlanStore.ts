@@ -431,7 +431,7 @@ export const useMealPlanStore = create<MealPlanState>()(
       clearChecked: () => set({ checkedItems: [] }),
     }),
     {
-      name: 'sempai-meal-plan',
+      name: 'forkcast-meal-plan',
       partialize: (s) => ({
         mealPlan: s.mealPlan,
         blacklist: s.blacklist,
