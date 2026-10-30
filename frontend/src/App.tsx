@@ -1,11 +1,139 @@
+import { useEffect, useState } from 'react';
+import './index.css';
+import { useThemeStore } from './store/useThemeStore';
+import { useMealPlanStore } from './store/useMealPlanStore';
+import { useAccessStore } from './store/useAccessStore';
+import ThemeToggle from './components/ThemeToggle';
+import Sidebar from './components/Sidebar';
+import MealPlanView from './components/MealPlanView';
+import BlacklistModal from './components/ui/BlacklistModal';
+import FavoritesModal from './components/ui/FavoritesModal';
+import PantryModal from './components/ui/PantryModal';
+import HelpModal from './components/ui/HelpModal';
+import RateLimitModal from './components/ui/RateLimitModal';
+import GuidedTour from './components/GuidedTour';
 
-function App() {
- 
+export default function App() {
+  const theme = useThemeStore((s) => s.theme);
+  const error = useMealPlanStore((s) => s.error);
+  const clearError = useMealPlanStore((s) => s.clearError);
+  const trustedAccess = useAccessStore((s) => s.trusted);
+
+  const isRateLimited = error?.startsWith('RATE_LIMITED:') ?? false;
+  const rateLimitResetAt = isRateLimited ? parseInt(error!.split(':')[1]) : 0;
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showPantry, setShowPantry] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showTour, setShowTour] = useState(() => !localStorage.getItem('forkcastai-tour-seen'));
+
+  function finishTour() {
+    localStorage.setItem('forkcastai-tour-seen', '1');
+    setShowTour(false);
+  }
+
+  function restartTour() {
+    setShowHelp(false);
+    setShowTour(true);
+  }
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 769px)');
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false); };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   return (
-    <>
-    </>
-  )
-}
+    <div className="app">
+      <header className="app-header">
+        <div className="app-header__left">
+          <button
+            className="app-header__hamburger"
+            aria-label="Open menu"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <span /><span /><span />
+          </button>
+          <div className="app-header__wordmark">
+            <img src="/favicon.svg" alt="" className="app-header__logo-mark" />
+            <span className="app-header__logo">forkcastAI</span>
+          </div>
+          <button
+            className="header-action-btn"
+            onClick={() => setShowPantry(true)}
+            data-tour="pantry-btn"
+          >
+            Pantry
+          </button>
+          <button
+            className="header-action-btn"
+            onClick={() => setShowFavorites(true)}
+            data-tour="favorites-btn"
+          >
+            Favorites
+          </button>
+          <button
+            className="header-action-btn"
+            onClick={() => setShowBlacklist(true)}
+            data-tour="blacklist-btn"
+          >
+            Recent Recipes
+          </button>
+        </div>
 
-export default App
+        <div className="app-header__actions">
+          {trustedAccess ? (
+            <span className="access-badge" title="10 AI requests per day, plus Claude-assisted shopping matching, enabled for this browser">
+              Full Access
+            </span>
+          ) : (
+            <span
+              className="access-badge access-badge--demo"
+              title="Limited to 2 AI requests per day and the automatic shopping-match algorithm only. Ask whoever shared this app with you for a Full Access link."
+            >
+              Demo Mode
+            </span>
+          )}
+          <ThemeToggle />
+          <button
+            className="header-action-btn header-action-btn--help"
+            onClick={() => setShowHelp(true)}
+            aria-label="Help"
+            data-tour="help-btn"
+          >
+            ?
+          </button>
+        </div>
+      </header>
+
+      <div className="app-body">
+        {sidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        )}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <MealPlanView />
+      </div>
+
+      {showPantry && <PantryModal onClose={() => setShowPantry(false)} />}
+      {showFavorites && <FavoritesModal onClose={() => setShowFavorites(false)} />}
+      {showBlacklist && <BlacklistModal onClose={() => setShowBlacklist(false)} />}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} onRestartTour={restartTour} />}
+      {isRateLimited && <RateLimitModal resetAt={rateLimitResetAt} onClose={clearError} />}
+      {showTour && (
+        <GuidedTour
+          onFinish={finishTour}
+          sidebarOpen={sidebarOpen}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onCloseSidebar={() => setSidebarOpen(false)}
+        />
+      )}
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import type { MealPlanRequest } from '../stores/useMealPlanStore';
+import type { MealPlanRequest } from '../store/useMealPlanStore';
 import type { MealPlan, Recipe } from '../types/mealPlan';
 
 const BASE = '';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Meal } from '../../types/mealPlan';
 import Modal from '../ui/Modal';
-import { useMealPlanStore, regenKey } from '../../stores/useMealPlanStore';
+import { useMealPlanStore, regenKey } from '../../store/useMealPlanStore';
 
 interface Props {
   meal: Meal;
