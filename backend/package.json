@@ -7,7 +7,7 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "GEMINI_API_KEY=test TAVILY_API_KEY=test tsx --test \"src/**/*.test.ts\""
+    "test": "GEMINI_API_KEY=test tsx --test \"src/**/*.test.ts\""
   },
   "keywords": [],
   "author": "",

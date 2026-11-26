@@ -6,9 +6,9 @@ import {
   RegenMealSchema,
   RecipeSlotSchema,
 } from './recipeSchema.js';
-// Importing aiService requires GEMINI_API_KEY and TAVILY_API_KEY to be set
-// (it throws at import otherwise). The npm test script sets dummy values;
-// these are never used to call a real API.
+// Importing aiService requires GEMINI_API_KEY to be set
+// (it throws at import otherwise). The npm test script sets a dummy value;
+// it is never used to call a real API.
 import { getPlanDates, parseJSON, classifyFailure } from './aiService.js';
 
 // A valid recipe matching RECIPE_SCHEMA exactly — the base for the

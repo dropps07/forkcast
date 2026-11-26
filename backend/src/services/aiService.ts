@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
-import { enrichRecipes, mapWithLimit, timingLog, type RecipeSlot, type EnrichedRecipe } from './tavilyService.js';
+import { enrichRecipes, requireSearchProvider, type RecipeSlot, type EnrichedRecipe } from './recipeSearch.js';
+import { mapWithLimit, timingLog } from './utils.js';
 import { usageTracker } from './usageTracker.js';
 import {
   DayMealSchema,
@@ -652,7 +653,7 @@ ${allergenGuardSection(req.dietary.allergens)}
 ${dayContextSection(req)}`;
 }
 
-// ── Web pipeline: plan → Tavily search → write one day at a time ──────────────
+// ── Web pipeline: plan → web search → write one day at a time ─────────────────
 
 const DAY_SYNTHESIS_SYSTEM = `You are a professional chef and meal planner. You have been given real recipe content retrieved from cooking websites.
 
@@ -687,6 +688,8 @@ export async function generateMealPlan(
   onDay: (day: PlannedDay) => void = () => {}
 ): Promise<MealPlanResult> {
   if (req.searchMode === 'training') return generateMealPlanFromTraining(req, onProgress, onDay);
+  // Fail before the planning call when no search provider is configured.
+  const provider = requireSearchProvider();
   const startedAt = Date.now();
 
   // Phase 1 — Plan which recipes to use
@@ -694,10 +697,10 @@ export async function generateMealPlan(
   const slots = await callGemini<RecipeSlot[]>(PLANNING_SYSTEM, buildPlanningMessage(req), 3000, { label: 'planning', schema: z.array(RecipeSlotSchema) });
   onProgress(`Selected ${slots.length} recipes — searching the web…`);
 
-  // Phase 2 — Tavily search + extract for every recipe
+  // Phase 2 — web search + extract for every recipe
   const enrichStarted = Date.now();
-  const enriched = await enrichRecipes(slots, onProgress);
-  timingLog('tavily enrich', enrichStarted);
+  const enriched = await enrichRecipes(slots, provider, onProgress);
+  timingLog(`${provider.name.toLowerCase()} enrich`, enrichStarted);
 
   // Phase 3 — Write the days, three at a time. Three concurrent day calls
   // stay comfortably under the free tier's requests-per-minute limit (each
@@ -771,14 +774,15 @@ export async function regenerateMeals(
 ): Promise<RegenMeal[]> {
   if (req.searchMode === 'training') return regenerateMealsFromTraining(req, onProgress);
   if (!req.slotsToGenerate?.length) throw new Error('No slots specified for regeneration');
+  const provider = requireSearchProvider();
 
   // Phase 1 — Plan only the specified slots
   onProgress('Choosing replacement recipes…');
   const slots = await callGemini<RecipeSlot[]>(PLANNING_SYSTEM, buildPlanningMessage(req), 2000, { label: 'regen-planning', schema: z.array(RecipeSlotSchema) });
   onProgress(`Selected ${slots.length} replacement recipe${slots.length === 1 ? '' : 's'} — searching the web…`);
 
-  // Phase 2 — Tavily enrich those slots
-  const enriched = await enrichRecipes(slots, onProgress);
+  // Phase 2 — web search + extract for those slots
+  const enriched = await enrichRecipes(slots, provider, onProgress);
 
   // Phase 3 — Write just the requested meals
   onProgress('Writing your updated meals…');

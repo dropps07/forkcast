@@ -53,7 +53,7 @@ Both modes stream progress to the browser over Server-Sent Events (SSE), so the 
 **Web Search**
 
 1. **Plan.** Gemini decides which recipes fit your preferences and picks a source site for each (for Indian dishes it prefers sites such as vegrecipesofindia.com and hebbarskitchen.com).
-2. **Retrieve.** The backend searches for each recipe with Tavily, restricted to that site, and extracts the real ingredient list and steps. It prefers the page's embedded Schema.org Recipe data (JSON-LD) and falls back to Tavily's content extraction.
+2. **Retrieve.** The backend searches for each recipe with Tavily (or Keenable when no Tavily key is set), restricted to that site, and extracts the real ingredient list and steps. It prefers the page's embedded Schema.org Recipe data (JSON-LD) and falls back to the search provider's content extraction.
 3. **Write.** Gemini produces the final structured recipe (macros, steps, ingredients) from the retrieved content, one day at a time, so it can't contradict the real recipe.
 
 **AI Generated**: one Gemini call per day, written entirely from the model's own knowledge. These recipes carry no source link.
@@ -106,7 +106,8 @@ forkcast/
     src/
       index.ts            server, rate limiting, image proxy
       routes/             meal plan (streaming) and access routes
-      services/           aiService (Gemini), tavilyService (Tavily), usageTracker
+      services/           aiService (Gemini), recipeSearch (web pipeline), recipeExtract (JSON-LD),
+                          tavilyService / keenableService (search adapters), utils, usageTracker
 ```
 
 ## Local development
@@ -115,7 +116,7 @@ forkcast/
 
 - Node.js 22+
 - A [Google AI Studio](https://aistudio.google.com) API key (free tier is enough)
-- A [Tavily](https://tavily.com) API key (only needed for Web Search mode)
+- For Web Search mode only: a [Tavily](https://tavily.com) API key, or the [Keenable](https://docs.keenable.ai) fallback (keyed with `KEENABLE_API_KEY`, or keyless by default; set `KEENABLE_KEYLESS=false` to opt out)
 
 ### Setup
 
@@ -169,7 +170,9 @@ The repo ships a Render Blueprint (`render.yaml`): a Node web service for the ba
 | Variable                | Required   | Default                 | Description                                                                                            |
 | ----------------------- | ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
 | `GEMINI_API_KEY`        | Yes        | none                    | Google Gemini API key                                                                                  |
-| `TAVILY_API_KEY`        | Yes        | none                    | Tavily search and extract API key                                                                      |
+| `TAVILY_API_KEY`        | No         | none                    | Tavily search and extract API key. Web Search mode uses Tavily whenever it is set                      |
+| `KEENABLE_API_KEY`      | No         | none                    | Keenable key, the Web Search fallback when no Tavily key is set                                        |
+| `KEENABLE_KEYLESS`      | No         | on (no Tavily key)      | `false` turns off the keyless Keenable fallback. Rate limited per IP; keyed and keyless requests are both logged under the default policy (docs.keenable.ai/data-privacy) |
 | `GEMINI_MODEL`          | No         | set in `aiService.ts`   | Main Gemini model                                                                                      |
 | `GEMINI_FALLBACK_MODEL` | No         | set in `aiService.ts`   | Lighter model used after a 503                                                                         |
 | `GEMINI_RETRY_MS`       | No         | `10000`                 | Base wait between retries (attempt n waits n x this)                                                   |
